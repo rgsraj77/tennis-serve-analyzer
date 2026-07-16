@@ -80,9 +80,12 @@ traceback.
   clip, including the ffmpeg subprocess) against Community Cloud's 1GB cap.
   Render's 512MB free tier is too tight; Hugging Face Spaces requires PRO for
   CPU Basic/Docker as of July 2026.
-- `packages.txt` installs `libgl1` + `libglib2.0-0`. MediaPipe pulls
-  `opencv-contrib-python`, which needs these at runtime — without them the
-  container dies at `import cv2`.
+- `packages.txt` installs `libgl1` + **`libglib2.0-0t64`**. MediaPipe pulls
+  `opencv-contrib-python`, which links `libGL.so.1` and `libgthread-2.0.so.0`;
+  without them the container dies at `import cv2`. The `t64` suffix is
+  required: Community Cloud runs Debian trixie, where plain `libglib2.0-0`
+  does not exist, and apt then falls back to a stale bullseye repo in the
+  image and fails on `libffi7`/`libpcre3`.
 - Only **one** dependency file is read, and `requirements.txt` is it — hence
   the dev/deploy split. Do not add a `pyproject.toml` or `Pipfile` without
   checking Streamlit's precedence order.

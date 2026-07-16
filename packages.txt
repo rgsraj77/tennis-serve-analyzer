@@ -1,2 +1,14 @@
+# apt packages for mediapipe's opencv-contrib-python wheel, which links
+# libGL.so.1 and libgthread-2.0.so.0. Without these, cv2 fails at import.
+#
+# NAME IS DELIBERATE: use libglib2.0-0t64, NOT libglib2.0-0.
+# Streamlit Cloud runs Debian trixie, where glib's runtime was renamed by the
+# 64-bit time_t transition. Plain "libglib2.0-0" does not exist in trixie, so
+# apt falls back to a stale bullseye repo still present in the image's sources,
+# picks 2.66.8-1+deb11u8, and that Debian 11 package depends on libffi7 and
+# libpcre3 -- neither of which exists in trixie. The build then dies with
+# "Unable to correct problems, you have held broken packages".
+# If Streamlit ever moves the image back to bookworm or older, this flips back
+# to libglib2.0-0 (the t64 name only exists from trixie onward).
 libgl1
-libglib2.0-0
+libglib2.0-0t64
