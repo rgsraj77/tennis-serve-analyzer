@@ -10,9 +10,17 @@
 #
 # mediapipe brings opencv-contrib-python with it — do not add opencv-python
 # separately or the two wheels will fight over the cv2 package.
-# That wheel needs libGL/libglib at runtime, which slim Linux containers lack:
-# packages.txt installs them (Streamlit Cloud reads it; on other hosts install
-# libgl1 + libglib2.0-0 yourself, or cv2 fails at import).
+#
+# That wheel links libGL.so.1 and libgthread-2.0.so.0, which slim Linux
+# containers lack, so packages.txt installs them. Two traps live in that file,
+# documented here because it cannot hold comments of its own:
+#   1. It must contain ONLY bare package names. Streamlit pipes it through
+#      xargs into apt-get, so a "#" comment is passed as a package name
+#      ("E: Unable to locate package #") and an apostrophe breaks xargs.
+#   2. Use libglib2.0-0t64, NOT libglib2.0-0. Streamlit Cloud runs Debian
+#      trixie, where the 64-bit time_t transition renamed the package. With
+#      the old name apt falls back to a stale bullseye repo in the image and
+#      dies on libffi7/libpcre3. (On bookworm or older, it is libglib2.0-0.)
 mediapipe==0.10.14
 numpy>=1.26,<2
 scipy>=1.11
