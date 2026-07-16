@@ -68,5 +68,4 @@ Or headless:
 - Reference ranges come from elite populations measured with 3D capture;
   the 2D-vs-3D gap is unquantified
 - Contact height threshold is still an uncalibrated heuristic
-- Not yet validated against a real serve video
 - One serve per clip; analysis is synchronous in the request
