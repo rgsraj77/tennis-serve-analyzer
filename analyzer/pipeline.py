@@ -34,6 +34,11 @@ def run_analysis(video_path, out_dir, progress=None):
     metrics, series = compute_metrics(kp, phases, handedness, fps)
     step(0.7, "Rendering annotated video")
     assets = render_assets(video_path, kp, phases, handedness, out_dir, fps)
+    if not assets.get("h264", True):
+        warnings.append("The annotated video could not be converted to H.264 "
+                        "(ffmpeg unavailable), so it may not play in the "
+                        "browser. Download it to view locally. The metrics "
+                        "and stills below are unaffected.")
     step(0.95, "Building report")
     return {
         "out_dir": out_dir,

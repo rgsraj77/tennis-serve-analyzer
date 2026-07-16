@@ -4,14 +4,30 @@ Shares the analysis core with app.py (FastAPI); only the rendering differs.
 Measured peak ~440MB against Community Cloud's 1GB cap, so uploads are held
 to short clips to keep that headroom.
 """
+import sys
 import tempfile
 import uuid
 from pathlib import Path
 
 import streamlit as st
 
-from analyzer.pipeline import run_analysis
-from analyzer.report import PHASE_LABELS
+# Guard BEFORE importing the analyzer: mediapipe 0.10.14 publishes Linux
+# wheels only for cp39-cp312 and declares no requires_python, so on 3.13+ pip
+# silently tries a source build and the analyzer import dies with an opaque
+# error. Community Cloud offers 3.13/3.14 in its deploy dropdown and cannot
+# pin the version from the repo, so this failure is one wrong click away.
+MIN_PY, MAX_PY = (3, 9), (3, 12)
+if not (MIN_PY <= sys.version_info[:2] <= MAX_PY):
+    st.error(
+        f"This app needs Python {MIN_PY[0]}.{MIN_PY[1]}–{MAX_PY[0]}.{MAX_PY[1]}, "
+        f"but it is running on {sys.version_info.major}.{sys.version_info.minor}. "
+        "MediaPipe publishes no wheel for this version. On Streamlit Community "
+        "Cloud: Manage app → Settings → Python version → 3.12, then reboot."
+    )
+    st.stop()
+
+from analyzer.pipeline import run_analysis  # noqa: E402
+from analyzer.report import PHASE_LABELS  # noqa: E402
 
 MAX_UPLOAD_MB = 60  # Community Cloud caps RAM; keep clips short
 

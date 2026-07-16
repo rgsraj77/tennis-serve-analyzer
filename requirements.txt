@@ -1,3 +1,13 @@
+# Deploy dependencies — Streamlit Community Cloud installs exactly this file.
+# Keep it lean: every extra wheel is build time and a thing that can break.
+# Local-only extras (FastAPI frontend, profiling) live in requirements-dev.txt.
+#
+# PYTHON VERSION: 3.9-3.12 only. mediapipe 0.10.14 ships no cp313 Linux wheel
+# and declares no requires_python, so on 3.13+ pip attempts a source build and
+# fails confusingly. Community Cloud defaults to 3.12 (fine) but offers
+# 3.13/3.14 in the dropdown — do not pick them. This cannot be pinned from the
+# repo; streamlit_app.py guards it at runtime.
+#
 # mediapipe brings opencv-contrib-python with it — do not add opencv-python
 # separately or the two wheels will fight over the cv2 package.
 # That wheel needs libGL/libglib at runtime, which slim Linux containers lack:
@@ -9,13 +19,7 @@ scipy>=1.11
 matplotlib>=3.8
 imageio-ffmpeg>=0.4.9
 
-# Streamlit frontend (streamlit_app.py) — the hosted deploy target
-streamlit>=1.35
-
-# FastAPI frontend (app.py) — local/self-hosted
-fastapi>=0.110
-uvicorn[standard]>=0.29
-python-multipart>=0.0.9
-
-# dev only: measure_memory.py
-psutil>=5.9
+# >=1.41: st.image() gained use_container_width there (it replaced
+# use_column_width). streamlit_app.py uses it, so an older pin would install
+# cleanly and then crash at render time.
+streamlit>=1.41

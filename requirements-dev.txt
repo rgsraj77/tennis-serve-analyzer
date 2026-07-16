@@ -1,0 +1,11 @@
+# Local extras, deliberately NOT installed on Streamlit Community Cloud.
+# Install with:  pip install -r requirements.txt -r requirements-dev.txt
+-r requirements.txt
+
+# FastAPI frontend (app.py) — the self-hosted alternative to streamlit_app.py
+fastapi>=0.110
+uvicorn[standard]>=0.29
+python-multipart>=0.0.9
+
+# measure_memory.py
+psutil>=5.9

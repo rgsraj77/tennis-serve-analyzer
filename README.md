@@ -34,9 +34,11 @@ report (annotated video, stills, chart, HTML)
 
 ## Run
 
+Python **3.9–3.12** (see the deploy notes — 3.13+ has no mediapipe wheel).
+
 ```
 python -m venv .venv
-.venv\Scripts\pip install -r requirements.txt
+.venv\Scripts\pip install -r requirements.txt -r requirements-dev.txt
 ```
 
 Two frontends share the same analysis core (`analyzer/pipeline.py`):
@@ -56,14 +58,36 @@ Or headless:
 
 Target: **Streamlit Community Cloud** (free, needs a public GitHub repo).
 
-- A full analysis peaks at **~440MB RAM** (measured — `measure_memory.py`,
-  1080x1920 @60fps clip, including the ffmpeg re-encode subprocess) against
-  Community Cloud's 1GB cap. Render's 512MB free tier is too tight; Hugging
-  Face Spaces requires PRO for CPU Basic/Docker as of July 2026.
+1. Push this repo to GitHub (public — the free tier requires it).
+2. [share.streamlit.io](https://share.streamlit.io) → **New app** → pick the repo.
+3. Main file: `streamlit_app.py`.
+4. **Advanced settings → Python version → 3.12.** ← the one that bites.
+5. Deploy. First build takes ~5-10 min.
+
+### Why 3.12 specifically
+
+mediapipe 0.10.14 publishes Linux wheels for **cp39–cp312 only** and declares
+no `requires_python`, so on 3.13+ pip does not refuse — it attempts a source
+build and fails with an opaque error. Community Cloud defaults to 3.12 (fine)
+but offers 3.13/3.14 in the dropdown, and the version **cannot be pinned from
+the repo** — no `runtime.txt`/`.python-version` support. `streamlit_app.py`
+therefore checks at runtime and shows a plain-English error instead of a
+traceback.
+
+### Other deployment facts
+
+- Peak RAM is **~440MB** (measured — `measure_memory.py`, 1080x1920 @60fps
+  clip, including the ffmpeg subprocess) against Community Cloud's 1GB cap.
+  Render's 512MB free tier is too tight; Hugging Face Spaces requires PRO for
+  CPU Basic/Docker as of July 2026.
 - `packages.txt` installs `libgl1` + `libglib2.0-0`. MediaPipe pulls
   `opencv-contrib-python`, which needs these at runtime — without them the
   container dies at `import cv2`.
-- `.streamlit/config.toml` caps uploads at 60MB, matching `MAX_UPLOAD_MB`.
+- Only **one** dependency file is read, and `requirements.txt` is it — hence
+  the dev/deploy split. Do not add a `pyproject.toml` or `Pipfile` without
+  checking Streamlit's precedence order.
+- `.streamlit/config.toml` caps uploads at 60MB, matching `MAX_UPLOAD_MB`, so
+  the browser enforces it before the upload rather than after.
 - Free-tier CPU is slower than local: expect 1-3 min per clip, not 30-90s.
 - Storage is ephemeral; reports vanish on restart. Uploaded videos are
   processed on Streamlit's servers.

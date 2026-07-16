@@ -101,13 +101,17 @@ def render_assets(video_path, kp, phases, handedness, out_dir, fps):
     if writer:
         writer.release()
 
-    video_name = "overlay.mp4"
+    # OpenCV writes mp4v, which browsers cannot decode in a <video> tag, so
+    # the H.264 re-encode is what makes the clip playable at all. Falling back
+    # silently would ship a video element that loads and then plays nothing --
+    # report the failure so the caller can surface it.
+    video_name, h264 = "overlay.mp4", True
     try:
         _reencode_h264(raw_path, out_dir / video_name)
         raw_path.unlink()
     except Exception:
-        video_name = "overlay_raw.mp4"  # keep mp4v output rather than fail
-    return {"video": video_name, "stills": stills}
+        video_name, h264 = "overlay_raw.mp4", False
+    return {"video": video_name, "stills": stills, "h264": h264}
 
 
 def render_chart(series, phases, fps, out_dir):
