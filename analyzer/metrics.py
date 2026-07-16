@@ -1,13 +1,15 @@
 """Serve metrics measured at the detected phase frames.
 
 All measurements come from a single side-on 2D view, so angles are
-projections onto the camera plane. The guideline thresholds below are
-prototype heuristics based on typical adult body proportions and common
-coaching cues — v2 should replace them with literature-cited ranges.
+projections onto the camera plane. Reference bands come from published serve
+kinematics — see references.py for sources, the flexion/interior angle
+conversion, and the caveats that apply to every comparison here.
 """
 import numpy as np
 
 from .pose import LM
+from .references import (KNEE_TROPHY, ELBOW_CONTACT, CONTACT_HEIGHT_HEURISTIC,
+                         SOURCES)
 
 
 def joint_angle(a, b, c):
@@ -60,50 +62,81 @@ def compute_metrics(kp, phases, handedness, fps):
     contact_height = (ground_y - kp[contact, wrist, 1]) / body_len
     tempo = (contact - phases["toss_peak"]) / fps
 
-    def status(value, good, ok):
+    def band_status(value, ref, direction):
+        """Compare against the reference +/-1 SD band.
+
+        'inside' = within the band; 'near' = outside by under 1 more SD;
+        'outside' = further than that. direction says which side of the band
+        counts as unremarkable rather than notable: for the knee, MORE bend
+        than elite is not a fault, and likewise for a straighter elbow.
+        """
         if np.isnan(value):
             return "info"
-        if good(value):
+        lo, hi, sd = ref["interior_lo"], ref["interior_hi"], ref["flexion_sd"]
+        if lo <= value <= hi:
             return "good"
-        return "info" if ok(value) else "warn"
+        if direction == "lower_ok" and value < lo:
+            return "good"
+        if direction == "higher_ok" and value > hi:
+            return "good"
+        gap = (lo - value) if value < lo else (value - hi)
+        return "info" if gap <= sd else "warn"
+
+    elbow_ref, knee_ref = ELBOW_CONTACT, KNEE_TROPHY
+    elbow_status = band_status(elbow_at_contact, elbow_ref, "higher_ok")
+    knee_status = band_status(knee_at_trophy, knee_ref, "lower_ok")
 
     metrics = [
         {
             "label": "Elbow extension at contact",
             "display": "n/a" if np.isnan(elbow_at_contact) else f"{elbow_at_contact:.0f}°",
-            "status": status(elbow_at_contact, lambda v: v >= 150, lambda v: v >= 125),
-            "guideline": "≥150° — arm close to fully extended",
-            "note": ("Good reach — the arm is nearly straight at contact."
-                     if elbow_at_contact >= 150 else
-                     "The arm looks bent at contact. Contacting with a straighter "
-                     "arm raises your contact point, giving more net clearance "
-                     "and a bigger service box window."),
+            "status": elbow_status,
+            "guideline": f"reference {elbow_ref['interior_lo']:.0f}–"
+                         f"{elbow_ref['interior_hi']:.0f}° (elite mean "
+                         f"{elbow_ref['interior_mean']:.0f}°)",
+            "source": SOURCES[elbow_ref["source"]],
+            "note": ("Arm extension at contact sits in the reference range for "
+                     "skilled servers."
+                     if elbow_status == "good" else
+                     "The arm looks more bent at contact than the reference range. "
+                     "A straighter arm raises the contact point, giving more net "
+                     "clearance and a bigger service box window."),
         },
         {
             "label": "Knee bend at trophy position",
             "display": "n/a" if np.isnan(knee_at_trophy) else f"{knee_at_trophy:.0f}°",
-            "status": status(knee_at_trophy, lambda v: v <= 125, lambda v: v <= 150),
-            "guideline": "≤125° interior angle — real leg drive",
-            "note": ("Solid knee bend — legs are loaded to drive upward."
-                     if knee_at_trophy <= 125 else
-                     "Knees stay fairly straight at the trophy position. More "
-                     "knee bend stores energy for upward drive and easier power."),
+            "status": knee_status,
+            "guideline": f"reference {knee_ref['interior_lo']:.0f}–"
+                         f"{knee_ref['interior_hi']:.0f}° (elite mean "
+                         f"{knee_ref['interior_mean']:.0f}°)",
+            "source": SOURCES[knee_ref["source"]],
+            "note": ("Knee bend is in the reference range — legs loaded to drive "
+                     "upward."
+                     if knee_status == "good" else
+                     "Knees stay straighter at the trophy position than the "
+                     "reference range. More knee bend stores energy for upward "
+                     "drive and easier power."),
         },
         {
             "label": "Contact height",
             "display": "n/a" if np.isnan(contact_height) else f"{contact_height:.2f}× body",
-            "status": status(contact_height, lambda v: v >= 1.30, lambda v: v >= 1.15),
-            "guideline": "≥1.30× nose-to-ankle length",
-            "note": ("Contact point is nice and high — full upward extension."
-                     if contact_height >= 1.30 else
-                     "Contact happens relatively low. Reaching up at full stretch "
-                     "(and tossing slightly higher/further in front) usually fixes this."),
+            "status": "info",
+            "guideline": f"≥{CONTACT_HEIGHT_HEURISTIC['good_min']:.2f}× nose-to-ankle "
+                         "length (uncalibrated heuristic — no published equivalent)",
+            "source": None,
+            "note": ("Contact point is high — full upward extension."
+                     if contact_height >= CONTACT_HEIGHT_HEURISTIC["good_min"] else
+                     "Contact looks relatively low. Reaching up at full stretch "
+                     "(and tossing slightly higher and further in front) usually "
+                     "raises it. This threshold is a rough heuristic, so weigh it "
+                     "lightly."),
         },
         {
             "label": "Tempo (toss peak → contact)",
             "display": "n/a" if np.isnan(tempo) else f"{tempo:.2f}s",
             "status": "info",
-            "guideline": "no single ideal — consistency matters most",
+            "guideline": "no single ideal — consistency across serves matters most",
+            "source": None,
             "note": "Track this across sessions: a steady tempo is a hallmark "
                     "of a repeatable serve.",
         },

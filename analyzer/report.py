@@ -155,6 +155,8 @@ h1 { font-size: 1.5rem; } h2 { font-size: 1.1rem; margin-top: 28px; }
 .card .tag { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.04em; }
 .card .note, .card .guide { font-size: 0.85rem; margin-top: 6px; }
 .card .guide { opacity: 0.75; }
+.card .src { font-size: 0.75rem; margin-top: 6px; opacity: 0.7; }
+.card .src a { color: inherit; }
 .stills { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
           gap: 10px; }
 .stills figure { margin: 0; } .stills img { width: 100%; border-radius: 8px; }
@@ -172,13 +174,18 @@ def write_report(out_dir, metrics, phases, handedness, warnings, fps, assets, se
     cards = ""
     for m in metrics:
         bg, fg, tag = STATUS_STYLE[m["status"]]
+        src = m.get("source")
+        src_html = (f'<div class="src"><a href="{html.escape(src["url"])}" '
+                    f'target="_blank" rel="noopener">source: '
+                    f'{html.escape(src["cite"])}</a></div>') if src else ""
         cards += f"""
         <div class="card" style="background:{bg};color:{fg};">
           <div class="label">{html.escape(m['label'])}</div>
           <div class="value">{html.escape(m['display'])}</div>
           <div class="tag">{tag}</div>
           <div class="note">{html.escape(m['note'])}</div>
-          <div class="guide">guideline: {html.escape(m['guideline'])}</div>
+          <div class="guide">{html.escape(m['guideline'])}</div>
+          {src_html}
         </div>"""
 
     stills_html = ""
@@ -210,10 +217,14 @@ def write_report(out_dir, metrics, phases, handedness, warnings, fps, assets, se
 <video src="{assets['video']}" controls muted playsinline></video>
 <h2>Motion timeline</h2>
 <div class="chart"><img src="{chart}" alt="wrist heights and knee angle over time"></div>
-<p class="footnote">Measurements are taken from a single side-on 2D view, so all
-angles are camera-plane projections and heights are relative to the player's
-nose-to-ankle length. Guideline thresholds are prototype heuristics, not
-certified coaching advice.</p>
+<p class="footnote">How to read this: reference ranges are the mean &plusmn;1 SD
+reported for <b>elite servers</b> (Olympic and skilled-player studies) &mdash;
+a benchmark, not a target, and falling outside one is not automatically a
+fault. Those studies used 3D motion capture; this tool measures 2D angles
+projected onto a single camera plane, which under-reads any movement swinging
+out of that plane, so treat the numbers as approximations. Contact height uses
+an uncalibrated heuristic with no published equivalent. This is an analysis
+prototype, not certified coaching advice.</p>
 </body></html>"""
     report_path = out_dir / "report.html"
     report_path.write_text(page, encoding="utf-8")
