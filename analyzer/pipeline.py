@@ -8,7 +8,7 @@ from pathlib import Path
 from .pose import extract_keypoints
 from .phases import smooth_keypoints, detect_phases
 from .metrics import compute_metrics
-from .report import render_assets, write_report
+from .report import render_assets, render_chart, write_report
 
 
 def run_analysis(video_path, out_dir, progress=None):
@@ -39,6 +39,10 @@ def run_analysis(video_path, out_dir, progress=None):
                         "(ffmpeg unavailable), so it may not play in the "
                         "browser. Download it to view locally. The metrics "
                         "and stills below are unaffected.")
+    # Every asset a frontend renders must be produced here, not in
+    # write_report -- the Streamlit frontend never calls write_report.
+    step(0.9, "Drawing motion timeline")
+    assets["chart"] = render_chart(series, phases, fps, out_dir)
     step(0.95, "Building report")
     return {
         "out_dir": out_dir,

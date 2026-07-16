@@ -86,7 +86,7 @@ def render_results(r):
     st.video(str(r["out_dir"] / r["assets"]["video"]))
 
     st.subheader("Motion timeline")
-    st.image(str(r["out_dir"] / "chart.png"), use_container_width=True)
+    st.image(str(r["out_dir"] / r["assets"]["chart"]), use_container_width=True)
 
 
 def main():

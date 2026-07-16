@@ -173,7 +173,9 @@ video, .chart img { width: 100%; border-radius: 10px; }
 
 def write_report(out_dir, metrics, phases, handedness, warnings, fps, assets, series):
     out_dir = Path(out_dir)
-    chart = render_chart(series, phases, fps, out_dir)
+    # run_analysis renders the chart so both frontends get it; render here only
+    # when write_report is called directly (tests, the CLI path).
+    chart = assets.get("chart") or render_chart(series, phases, fps, out_dir)
 
     cards = ""
     for m in metrics:
