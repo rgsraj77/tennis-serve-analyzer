@@ -37,14 +37,36 @@ report (annotated video, stills, chart, HTML)
 ```
 python -m venv .venv
 .venv\Scripts\pip install -r requirements.txt
-.venv\Scripts\uvicorn app:app --port 8123
 ```
 
-Open http://localhost:8123 and upload a clip. Or run headless:
+Two frontends share the same analysis core (`analyzer/pipeline.py`):
+
+```
+.venv\Scripts\python -m streamlit run streamlit_app.py   # http://localhost:8501
+.venv\Scripts\python -m uvicorn app:app --port 8123      # http://localhost:8123
+```
+
+Or headless:
 
 ```
 .venv\Scripts\python -m analyzer.pipeline path\to\serve.mp4 outputs\test
 ```
+
+## Deploying
+
+Target: **Streamlit Community Cloud** (free, needs a public GitHub repo).
+
+- A full analysis peaks at **~440MB RAM** (measured — `measure_memory.py`,
+  1080x1920 @60fps clip, including the ffmpeg re-encode subprocess) against
+  Community Cloud's 1GB cap. Render's 512MB free tier is too tight; Hugging
+  Face Spaces requires PRO for CPU Basic/Docker as of July 2026.
+- `packages.txt` installs `libgl1` + `libglib2.0-0`. MediaPipe pulls
+  `opencv-contrib-python`, which needs these at runtime — without them the
+  container dies at `import cv2`.
+- `.streamlit/config.toml` caps uploads at 60MB, matching `MAX_UPLOAD_MB`.
+- Free-tier CPU is slower than local: expect 1-3 min per clip, not 30-90s.
+- Storage is ephemeral; reports vanish on restart. Uploaded videos are
+  processed on Streamlit's servers.
 
 ## Recording protocol
 

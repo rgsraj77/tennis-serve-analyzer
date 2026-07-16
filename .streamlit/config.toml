@@ -1,0 +1,10 @@
+[server]
+# Keep in step with MAX_UPLOAD_MB in streamlit_app.py. Without this the widget
+# advertises Streamlit's 200MB default and only rejects the file after the
+# whole upload finishes; this makes the browser enforce it up front. The cap
+# exists because Community Cloud allows 1GB RAM and a full analysis peaks at
+# ~440MB (see measure_memory.py).
+maxUploadSize = 60
+
+[browser]
+gatherUsageStats = false
