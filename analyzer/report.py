@@ -10,7 +10,7 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
-from .pose import LM, POSE_CONNECTIONS, open_video, scale_frame
+from .pose import LM, POSE_CONNECTIONS, open_video, scale_frame, apply_rotation
 from .metrics import hitting_arm, joint_angle
 
 SKELETON_COLOR = (80, 220, 80)
@@ -59,7 +59,7 @@ def _reencode_h264(src, dst):
 def render_assets(video_path, kp, phases, handedness, out_dir, fps):
     """Write overlay video + phase stills; return their file names."""
     out_dir = Path(out_dir)
-    cap, _ = open_video(video_path)
+    cap, _, rotation = open_video(video_path)
     raw_path = out_dir / "overlay_raw.mp4"
     writer = None
     shoulder, elbow, wrist = hitting_arm(handedness)
@@ -72,6 +72,7 @@ def render_assets(video_path, kp, phases, handedness, out_dir, fps):
         ok, frame = cap.read()
         if not ok:
             break
+        frame = apply_rotation(frame, rotation)
         frame = scale_frame(frame)
         if writer is None:
             writer = cv2.VideoWriter(str(raw_path), cv2.VideoWriter_fourcc(*"mp4v"),

@@ -32,6 +32,18 @@ def run_analysis(video_path, out_dir, progress=None):
     phases, handedness, warnings = detect_phases(kp, fps)
     step(0.65, "Measuring joint angles")
     metrics, series = compute_metrics(kp, phases, handedness, fps)
+    # Backstop for rotation the metadata flag missed: a contact wrist far above
+    # the player's own height is physically impossible, and the classic symptom
+    # of a sideways frame (body length collapses, so the ratio explodes).
+    contact_h = series["hit_wrist"][phases["contact"]]
+    if contact_h and contact_h > 2.2:
+        warnings.insert(0,
+            f"Contact height came out at {contact_h:.1f}x the player's height, "
+            "which is not physically possible — the video is most likely "
+            "rotated or the player is only partly in frame, so treat this "
+            "report as unreliable. If you filmed on a phone, try re-recording "
+            "in landscape, or send the clip through a messaging app first "
+            "(that re-saves it upright).")
     step(0.7, "Rendering annotated video")
     assets = render_assets(video_path, kp, phases, handedness, out_dir, fps)
     if not assets.get("h264", True):

@@ -64,7 +64,11 @@ Or headless:
 
 - Single-camera 2D: angles are camera-plane projections; rotational metrics
   (hip-shoulder separation) are out of scope
+- Phone clips with a rotation flag (iPhone especially) are auto-detected and
+  rotated upright before analysis; see `analyzer/pose.py`
 - No ball or racket tracking — toss is inferred from the tossing wrist
+- Handedness is inferred from which wrist reaches highest, which is fragile
+  when the toss and hitting arms peak at similar heights — next on the list
 - Reference ranges come from elite populations measured with 3D capture;
   the 2D-vs-3D gap is unquantified
 - Contact height threshold is still an uncalibrated heuristic
